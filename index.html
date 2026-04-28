@@ -161,6 +161,8 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 
 /* PREVIEW */
 .ps{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+/* スケール用ラッパー */
+.ps-inner{transform-origin:top left;width:680px}
 
 /* ── QUOTE DOCUMENT ── */
 #qdoc{width:680px;min-height:860px;background:#fff;padding:52px 58px 48px;
@@ -221,8 +223,10 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 /* 作業料金エリアの強調 */
 #ib-work{background:var(--gold-bg);border-radius:0 0 10px 10px;
   padding:4px 10px 8px;margin:0 -2px 4px;border:1px solid var(--gold-b);border-top:none}
-.cr.work-cr{background:var(--gold-bg);border-radius:10px 10px 0 0;
-  padding:13px 13px 13px 15px;margin:0 -2px;border:1px solid var(--gold-b)}
+.cr.work-cr{background:var(--gold-bg);border-radius:10px;
+  padding:13px 13px 13px 15px;margin:0 -2px;border:1px solid var(--gold-b);
+  transition:border-radius .2s}
+.cr.work-cr.open-below{border-radius:10px 10px 0 0}
 
 /* INFO */
 .info{background:var(--gold-bg);border:1.5px solid var(--gold-b);border-radius:10px;
@@ -238,25 +242,14 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 <h2 class="pg">設定</h2>
 
 <div class="card">
-<div class="ct">基本設定</div>
-<div class="sr">
-  <span class="sl">消費税率</span>
-  <div class="sc">
-    <input type="number" id="s-tax" min="0" max="100" value="10" style="width:80px;height:42px;text-align:center">
-    <span class="su">%</span>
-  </div>
-</div>
-<div class="sr">
-  <span class="sl">見積りの有効期限</span>
-  <div class="sc">
-    <input type="number" id="s-validity" min="1" max="365" value="30" style="width:80px;height:42px;text-align:center">
-    <span class="su">日後まで有効</span>
-  </div>
-</div>
+<div class="ct">作業料金の詳細設定</div>
+<div id="pattern-list"></div>
+<button class="add-btn" onclick="addPattern()">＋ パターンを追加</button>
+<div class="info" style="margin-top:10px">💡 入力タブで複数チェック可能。点数を入力すると単価×点数で計算されます。</div>
 </div>
 
 <div class="card">
-<div class="ct">内訳設定</div>
+<div class="ct">手数料設定</div>
 <div class="sr">
   <span class="sl">商用利用</span>
   <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
@@ -283,11 +276,23 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 </div>
 
 <div class="card">
-<div class="ct">作業パターン</div>
-<div id="pattern-list"></div>
-<button class="add-btn" onclick="addPattern()">＋ パターンを追加</button>
-<div class="info" style="margin-top:10px">💡 入力タブで複数チェック可能。点数を入力すると単価×点数で計算されます。</div>
+<div class="ct">基本設定</div>
+<div class="sr">
+  <span class="sl">消費税率</span>
+  <div class="sc">
+    <input type="number" id="s-tax" min="0" max="100" value="10" style="width:80px;height:42px;text-align:center">
+    <span class="su">%</span>
+  </div>
 </div>
+<div class="sr">
+  <span class="sl">見積りの有効期限</span>
+  <div class="sc">
+    <input type="number" id="s-validity" min="1" max="365" value="30" style="width:80px;height:42px;text-align:center">
+    <span class="su">日後まで有効</span>
+  </div>
+</div>
+</div>
+
 </div><!-- /settings -->
 
 <!-- ══ INPUT ══ -->
@@ -372,6 +377,8 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
   <span class="cl">管理手数料</span>
   <span class="ch" id="hint-mgmt">—</span>
 </div>
+<div class="group-sep">↑ までが制作費合計</div>
+
 <!-- 特急対応 -->
 <div class="cr">
   <input type="checkbox" class="cb" id="chk-expr">
@@ -441,7 +448,7 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
   テキストでコピー
 </button>
-<div class="ps"><div id="qdoc"></div></div>
+<div class="ps"><div class="ps-inner"><div id="qdoc"></div></div></div>
 </div>
 </div><!-- /panels -->
 
@@ -574,14 +581,14 @@ function renderPatterns(){
         <div class="ir"><span class="unit">単価 ¥</span><input type="number" min="0" placeholder="0" value="${p.amount}"></div>
       </div>
       <button class="del-btn" title="削除">✕</button>`;
-    div.querySelectorAll('input')[0].addEventListener('input',e=>{p.name=e.target.value;saveS();renderWorkChecks();});
+    div.querySelectorAll('input')[0].addEventListener('input',e=>{p.name=e.target.value;saveS();renderWorkChecks(getWorkQtys());});
     div.querySelectorAll('input')[1].addEventListener('input',e=>{
       p.amount=parseFloat(e.target.value)||0;
-      saveS();renderWorkChecks();updateTotals();
+      saveS();renderWorkChecks(getWorkQtys());updateTotals();
     });
     div.querySelector('.del-btn').addEventListener('click',()=>{
       S.workPatterns=S.workPatterns.filter(x=>x.id!==p.id);
-      saveS();renderPatterns();renderWorkChecks();updateTotals();
+      saveS();renderPatterns();renderWorkChecks(getWorkQtys());updateTotals();
     });
     el.appendChild(div);
   });
@@ -589,7 +596,7 @@ function renderPatterns(){
 function addPattern(){
   if(!S.workPatterns)S.workPatterns=[];
   S.workPatterns.push({id:uid(),name:'',amount:0});
-  saveS();renderPatterns();renderWorkChecks();
+  saveS();renderPatterns();renderWorkChecks(getWorkQtys());
 }
 
 // ── WORK CHECKBOXES ──
@@ -659,7 +666,14 @@ function updateTotals(){
 function updateExpiry(){
   $('i-expiry').value=($('i-date').value)?fmt(addDays($('i-date').value,S.validityDays)):'—';
 }
-function toggleIb(id,show){$(id).classList.toggle('open',show)}
+function toggleIb(id,show){
+  $(id).classList.toggle('open',show);
+  // work-crの角丸をib-workの開閉に連動
+  if(id==='ib-work'){
+    const wcr=document.querySelector('.cr.work-cr');
+    if(wcr) wcr.classList.toggle('open-below',show);
+  }
+}
 
 // ── PREVIEW ──
 function renderPreview(){
@@ -814,12 +828,25 @@ function copyText(){
   }).catch(()=>alert('コピーに失敗しました'));
 }
 
+// ── PREVIEW SCALE ──
+function scalePreview(){
+  const container=document.querySelector('.ps');
+  const inner=document.querySelector('.ps-inner');
+  if(!container||!inner) return;
+  const available=container.clientWidth-2; // 2px margin
+  const scale=Math.min(1, available/680);
+  inner.style.transform=`scale(${scale})`;
+  inner.style.width='680px';
+  // コンテナの高さをスケール後に合わせる（見切れ防止）
+  container.style.height=(inner.scrollHeight*scale+16)+'px';
+}
+
 // ── TABS ──
 function sw(tab,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   $(`panel-${tab}`).classList.add('active');btn.classList.add('on');
-  if(tab==='preview')renderPreview();
+  if(tab==='preview'){renderPreview();setTimeout(scalePreview,50);}
 }
 
 // ── INIT ──
@@ -837,7 +864,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   // Restore basic fields
   if(dr.adr)$('i-adr').value=dr.adr;
-  if(dr.hon)$('i-hon').value=dr.hon;
+  if(dr.hon!==undefined)$('i-hon').value=dr.hon;
   if(dr.date)$('i-date').value=dr.date;
   if(dr.subject)$('i-subject').value=dr.subject;
   if(dr.issuer)$('i-issuer').value=dr.issuer;
@@ -875,6 +902,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(dr.dr)$('i-dr').value=dr.dr;
 
   toggleIb('ib-work',$('chk-work').checked);
+  // 初期状態でopen-belowも反映
+  if($('chk-work').checked){
+    const wcr=document.querySelector('.cr.work-cr');
+    if(wcr) wcr.classList.add('open-below');
+  }
   toggleIb('ib-df',$('chk-df').checked);
   toggleIb('ib-dr',$('chk-dr').checked);
   updateCustomVis();updateExpiry();updateTotals();
@@ -902,6 +934,10 @@ window.addEventListener('DOMContentLoaded',()=>{
   });
   $('i-hon').addEventListener('change',updateTotals);
   $('i-date').addEventListener('input',()=>{updateExpiry();updateTotals()});
+
+  window.addEventListener('resize', ()=>{
+    if(document.getElementById('panel-preview').classList.contains('active')) scalePreview();
+  });
 
   sw('input',document.querySelector('.nb[data-tab="input"]'));
 });
