@@ -429,6 +429,11 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 <div class="ct">備考（発行者名の下・全幅で表示）</div>
 <textarea id="i-remarks" placeholder="備考があれば入力"></textarea>
 </div>
+
+<button class="btn primary" id="btn-to-preview" onclick="goPreview()" style="margin-top:4px">
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+  プレビューを見る
+</button>
 </div><!-- /input -->
 
 <!-- ══ PREVIEW ══ -->
@@ -662,6 +667,7 @@ function updateTotals(){
   $('t-dr-lbl').textContent=`割引（${d.dr}%）`;
   $('t-dr').textContent='-'+yen(c.dr);
   saveD();if(d.issuer)saveIssuer(d.issuer);
+  updatePreviewBtn();
 }
 function updateExpiry(){
   $('i-expiry').value=($('i-date').value)?fmt(addDays($('i-date').value,S.validityDays)):'—';
@@ -826,6 +832,28 @@ function copyText(){
     const orig=btn.innerHTML;btn.innerHTML='✓ コピー完了！';
     setTimeout(()=>{btn.innerHTML=orig},2000);
   }).catch(()=>alert('コピーに失敗しました'));
+}
+
+// ── GO PREVIEW ──
+function goPreview(){
+  const d=gather();const c=calc(d);
+  if(c.total===0){
+    const btn=$('btn-to-preview');
+    const orig=btn.innerHTML;
+    btn.style.background='var(--danger)';
+    btn.textContent='⚠️ 金額が入力されていません';
+    setTimeout(()=>{btn.style.background='';btn.innerHTML=orig;},2200);
+    return;
+  }
+  sw('preview',document.querySelector('.nb[data-tab="preview"]'));
+}
+
+function updatePreviewBtn(){
+  const btn=$('btn-to-preview');if(!btn)return;
+  const d=gather();const c=calc(d);
+  const zero=c.total===0;
+  btn.style.opacity=zero?'0.45':'1';
+  btn.title=zero?'金額を入力してください':'';
 }
 
 // ── PREVIEW SCALE ──
