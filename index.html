@@ -239,7 +239,7 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 
 <!-- ══ SETTINGS ══ -->
 <div class="panel active" id="panel-settings">
-<h2 class="pg">設定</h2>
+<h2 class="pg" style="text-align:center">設定</h2>
 
 <div class="card">
 <div class="ct">作業料金の詳細設定</div>
@@ -293,11 +293,26 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 </div>
 </div>
 
+<button class="btn" onclick="openResetModal()" style="background:var(--bg);color:var(--danger);border:1.5px solid var(--danger);margin-top:4px">
+  設定・入力内容をリセット
+</button>
+
 </div><!-- /settings -->
+
+<div id="modal-reset" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:16px;padding:24px;max-width:320px;width:100%">
+    <p style="font-size:16px;font-weight:600;margin-bottom:8px">設定をリセットしますか？</p>
+    <p style="font-size:13px;color:var(--ink-mid);margin-bottom:20px;line-height:1.7">作業パターン・手数料設定・入力内容がすべて初期状態に戻ります。この操作は取り消せません。</p>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeResetModal()" style="flex:1;height:48px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-family:inherit;font-size:15px;cursor:pointer">キャンセル</button>
+      <button onclick="doReset()" style="flex:1;height:48px;border:none;border-radius:10px;background:var(--danger);color:#fff;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">リセット</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ INPUT ══ -->
 <div class="panel" id="panel-input">
-<h2 class="pg">お見積り内容</h2>
+<h2 class="pg" style="text-align:center">お見積り内容</h2>
 
 <div class="card">
 <div class="ct">基本情報</div>
@@ -847,6 +862,19 @@ function copyText(){
     const orig=btn.innerHTML;btn.innerHTML='✓ コピー完了！';
     setTimeout(()=>{btn.innerHTML=orig},2000);
   }).catch(()=>alert('コピーに失敗しました'));
+}
+
+function openResetModal(){
+  const m=$('modal-reset');m.style.display='flex';
+}
+function closeResetModal(){
+  const m=$('modal-reset');m.style.display='none';
+}
+function doReset(){
+  localStorage.removeItem(SK+'_s');
+  localStorage.removeItem(SK+'_d');
+  localStorage.removeItem(SK+'_i');
+  location.reload();
 }
 
 // ── GO PREVIEW ──
