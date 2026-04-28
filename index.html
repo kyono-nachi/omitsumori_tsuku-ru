@@ -753,15 +753,30 @@ async function doDownload(btn){
   renderPreview();
   btn.disabled=true;btn.textContent='生成中…';
   await document.fonts.ready;
+
+  // キャプチャ前にスケールをリセット（html2canvasがtransformで崩れるのを防ぐ）
+  const inner=document.querySelector('.ps-inner');
+  const ps=document.querySelector('.ps');
+  const prevTransform=inner?inner.style.transform:'';
+  const prevHeight=ps?ps.style.height:'';
+  if(inner){inner.style.transform='scale(1)';inner.style.width='680px';}
+  if(ps){ps.style.overflow='visible';ps.style.height='auto';}
+
   try{
     const canvas=await html2canvas($('qdoc'),{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
     const url=canvas.toDataURL('image/png');
     const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
     if(isIOS){$('modal-img').src=url;$('modal').classList.add('open');}
     else{const a=document.createElement('a');a.download=`見積書_${$('i-date').value||today()}.png`;a.href=url;a.click();}
-  }catch(e){alert('生成に失敗しました\n'+e.message)}
-  btn.disabled=false;
-  btn.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG画像を保存';
+  }catch(e){
+    alert('生成に失敗しました\n'+e.message);
+  }finally{
+    // スケールを元に戻す
+    if(inner)inner.style.transform=prevTransform;
+    if(ps){ps.style.overflow='hidden';ps.style.height=prevHeight;}
+    btn.disabled=false;
+    btn.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG画像を保存';
+  }
 }
 function closeModal(){$('modal').classList.remove('open');$('modal-img').src=''}
 
