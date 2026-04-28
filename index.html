@@ -160,7 +160,7 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 .add-btn:hover{background:var(--gold);color:#fff}
 
 /* PREVIEW */
-.ps{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+.ps{overflow:hidden;padding-bottom:16px}
 /* スケール用ラッパー */
 .ps-inner{transform-origin:top left;width:680px}
 
@@ -871,6 +871,34 @@ function scalePreview(){
 
 // ── TABS ──
 function sw(tab,btn){
+  // プレビュータブへの遷移時に¥0チェック
+  if(tab==='preview'){
+    const c=calc(gather());
+    if(c.total===0){
+      btn.style.color='var(--danger)';
+      setTimeout(()=>{btn.style.color='';},1500);
+      // 入力タブに戻す（まだ切り替えない）
+      const inputBtn=document.querySelector('.nb[data-tab="input"]');
+      if(!document.getElementById('panel-input').classList.contains('active')){
+        // 既にpreviewでない場合はそのまま警告のみ
+      }
+      // 警告トースト
+      let toast=document.getElementById('zero-toast');
+      if(!toast){
+        toast=document.createElement('div');
+        toast.id='zero-toast';
+        toast.style.cssText='position:fixed;top:24px;left:50%;transform:translateX(-50%);'+
+          'background:var(--danger);color:#fff;padding:10px 20px;border-radius:10px;'+
+          'font-size:14px;font-weight:600;z-index:999;pointer-events:none;'+
+          'opacity:0;transition:opacity .2s;white-space:nowrap';
+        document.body.appendChild(toast);
+      }
+      toast.textContent='⚠️ 金額が入力されていません';
+      toast.style.opacity='1';
+      setTimeout(()=>{toast.style.opacity='0';},2000);
+      return;
+    }
+  }
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   $(`panel-${tab}`).classList.add('active');btn.classList.add('on');
@@ -904,17 +932,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   // Restore work pattern checkboxes
   if(dr.checkedPids&&dr.checkedPids.length>0){
     document.querySelectorAll('.wkchk').forEach(cb=>{cb.checked=dr.checkedPids.includes(cb.value)});
-  }
-  // Restore quantities in displayed rows
-  if(dr.workQtys){
-    document.querySelectorAll('.wk-qty').forEach(inp=>{
-      const pid=inp.dataset.pid;
-      const qty=dr.workQtys[pid]||1;
-      inp.value=qty;
-      // Update displayed total
-      const p=S.workPatterns.find(x=>x.id===pid);
-      if(p){const span=inp.closest('.wkr').querySelector('.wkr-total');if(span)span.textContent=yen((p.amount||0)*qty);}
-    });
   }
 
   if(dr.customWorkOn)$('chk-wk-custom').checked=dr.customWorkOn;
