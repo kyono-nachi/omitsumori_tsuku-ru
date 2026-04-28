@@ -297,7 +297,7 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 
 <!-- ══ INPUT ══ -->
 <div class="panel" id="panel-input">
-<h2 class="pg">見積内容</h2>
+<h2 class="pg">お見積り内容</h2>
 
 <div class="card">
 <div class="ct">基本情報</div>
@@ -317,7 +317,6 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
   <div class="field">
     <label class="fl">発行日</label>
     <input type="date" id="i-date">
-    <span id="i-date-fmt" style="display:block;font-size:12px;color:var(--ink-mid);margin-top:4px;padding-left:2px"></span>
   </div>
   <div class="field">
     <label class="fl">見積りの有効期限</label>
@@ -439,7 +438,7 @@ input[readonly]:focus{border-color:var(--border);background:var(--bg)}
 
 <!-- ══ PREVIEW ══ -->
 <div class="panel" id="panel-preview">
-<h2 class="pg">プレビュー</h2>
+<h2 class="pg" style="text-align:center">プレビュー</h2>
 <div class="info" style="margin-bottom:12px;font-size:13px">
   📱 <strong>iPad での保存方法</strong><br>
   「PNG画像を保存」を押すと画像が全画面表示されます。<br>
@@ -502,7 +501,7 @@ function defaultPatterns(){
 }
 function loadS(){
   const raw=localStorage.getItem(SK+'_s');
-  const base={taxRate:10,validityDays:30,comType:'ratio',comVal:20,mgmtType:'ratio',mgmtVal:0,exprType:'ratio',exprVal:20,workPatterns:defaultPatterns()};
+  const base={taxRate:10,validityDays:30,comType:'ratio',comVal:20,mgmtType:'fixed',mgmtVal:0,exprType:'ratio',exprVal:20,workPatterns:defaultPatterns()};
   if(!raw) return base;
   try{return Object.assign(base,JSON.parse(raw))}catch{return base}
 }
@@ -673,8 +672,6 @@ function updateTotals(){
 function updateExpiry(){
   const dt=$('i-date').value;
   $('i-expiry').value=dt?fmt(addDays(dt,S.validityDays)):'—';
-  const fmtEl=$('i-date-fmt');
-  if(fmtEl) fmtEl.textContent=dt?fmt(dt):'';
 }
 function toggleIb(id,show){
   $(id).classList.toggle('open',show);
@@ -754,16 +751,17 @@ async function doDownload(btn){
   btn.disabled=true;btn.textContent='生成中…';
   await document.fonts.ready;
 
-  // キャプチャ前にスケールをリセット（html2canvasがtransformで崩れるのを防ぐ）
-  const inner=document.querySelector('.ps-inner');
-  const ps=document.querySelector('.ps');
-  const prevTransform=inner?inner.style.transform:'';
-  const prevHeight=ps?ps.style.height:'';
-  if(inner){inner.style.transform='scale(1)';inner.style.width='680px';}
-  if(ps){ps.style.overflow='visible';ps.style.height='auto';}
+  // 画面外にクローンを作成してキャプチャ（表示中のスケールに触れない）
+  const src=$('qdoc');
+  const clone=src.cloneNode(true);
+  clone.style.cssText=`position:fixed;left:-9999px;top:0;width:680px;background:#fff;font-family:'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif;`;
+  document.body.appendChild(clone);
 
   try{
-    const canvas=await html2canvas($('qdoc'),{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const canvas=await html2canvas(clone,{
+      scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,
+      width:680,windowWidth:680
+    });
     const url=canvas.toDataURL('image/png');
     const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
     if(isIOS){$('modal-img').src=url;$('modal').classList.add('open');}
@@ -771,9 +769,7 @@ async function doDownload(btn){
   }catch(e){
     alert('生成に失敗しました\n'+e.message);
   }finally{
-    // スケールを元に戻す
-    if(inner)inner.style.transform=prevTransform;
-    if(ps){ps.style.overflow='hidden';ps.style.height=prevHeight;}
+    document.body.removeChild(clone);
     btn.disabled=false;
     btn.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG画像を保存';
   }
@@ -921,7 +917,11 @@ function sw(tab,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   $(`panel-${tab}`).classList.add('active');btn.classList.add('on');
-  if(tab==='preview'){renderPreview();setTimeout(scalePreview,50);}
+  if(tab==='preview'){
+    renderPreview();
+    // 描画完了を確実に待ってからスケール計算（double RAF）
+    requestAnimationFrame(()=>requestAnimationFrame(scalePreview));
+  }
 }
 
 // ── INIT ──
